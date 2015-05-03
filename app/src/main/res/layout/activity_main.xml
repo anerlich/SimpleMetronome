@@ -20,7 +20,17 @@
         android:layout_centerHorizontal="true"
         android:inputType="number" />
 
-    <SeekBar
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@id/txtBpm"
+        android:layout_alignBaseline="@id/txtBpm"
+        android:paddingEnd="10sp"
+        android:paddingRight="10sp"
+        android:id="@+id/lblBpm"
+        android:text="@string/label_bpm"
+        android:layout_toStartOf="@id/txtBpm" />
+   <SeekBar
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/skbBpm"
@@ -36,6 +46,7 @@
         android:id="@+id/txtMin"
         android:layout_below="@+id/skbBpm"
         android:layout_centerHorizontal="true"
+        android:layout_alignLeft="@id/skbBpm"
         android:layout_alignStart="@id/skbBpm" />
 
     <TextView
@@ -47,7 +58,32 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_alignEnd="@id/skbBpm"
+        android:layout_alignRight="@id/skbBpm"
         android:text="0" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtMin"
+        android:paddingTop="60sp"
+        android:id="@+id/spnDuration"
+        android:layout_alignLeft="@id/txtBpm"
+        />
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@id/spnDuration"
+        android:layout_below="@id/txtMin"
+        android:layout_alignBaseline="@id/spnDuration"
+        android:paddingEnd="10sp"
+        android:paddingRight="10sp"
+        android:paddingTop="60sp"
+        android:id="@+id/lblDuration"
+        android:text="@string/label_duration"
+        android:layout_toStartOf="@id/txtBpm" />
+
 
     <ImageView
         android:layout_width="wrap_content"

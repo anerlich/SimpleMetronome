@@ -19,11 +19,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 
@@ -37,6 +40,7 @@ public class MainActivity extends ActionBarActivity {
     float volume = 0f;
     double bpm = 120;
     double bpmInt;
+    int mDuration = 0;
     private static final int MIN_BPM = 1;
     private static final int MAX_BPM = 240;
     AnimationDrawable metroAnim;
@@ -141,7 +145,7 @@ public class MainActivity extends ActionBarActivity {
                     bpm = Integer.parseInt(s.toString());
                     skbBpm.setProgress((int) bpm - MIN_BPM);
                     metroAnim = buildAnimation(txtBpm);
-                    ImageView imgMetro = (ImageView)findViewById(R.id.imgMetro);
+                    ImageView imgMetro = (ImageView) findViewById(R.id.imgMetro);
                     imgMetro.setBackground(metroAnim);
                 }
             }
@@ -177,6 +181,23 @@ public class MainActivity extends ActionBarActivity {
                     btnGoStop.setText(R.string.action_go);
                 }
 
+            }
+        });
+
+        Spinner spnDuration = (Spinner)findViewById(R.id.spnDuration);
+        ArrayAdapter<CharSequence> adapDuration = ArrayAdapter.createFromResource(this,
+                                    R.array.arrDuration,android.R.layout.simple_spinner_item);
+        adapDuration.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spnDuration.setAdapter(adapDuration);
+        spnDuration.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mDuration = position * 30000;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                mDuration = 0;
             }
         });
 

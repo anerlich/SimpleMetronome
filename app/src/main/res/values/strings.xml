@@ -5,4 +5,19 @@
     <string name="action_settings">Settings</string>
     <string name="action_go">Go</string>
     <string name="action_stop">Stop</string>
+    <string name="label_bpm">BPM</string>
+    <string name="label_duration">Duration</string>
+    <string-array name="arrDuration">
+        <item>Manual</item>
+        <item>30 sec</item>
+        <item>1 min</item>
+        <item>1 min 30 sec</item>
+        <item>2 min</item>
+        <item>2 min 30 sec</item>
+        <item>3 min</item>
+        <item>3 min 30 sec</item>
+        <item>4 min</item>
+        <item>4 min 30 sec</item>
+        <item>5 min</item>
+    </string-array>
 </resources>
