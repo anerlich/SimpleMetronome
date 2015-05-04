@@ -34,7 +34,8 @@ public class MainActivity extends ActionBarActivity {
     private SoundPool soundPool;
     private boolean loaded;
     private boolean started;
-    private int soundId;
+    private int soundIdTick;
+    private int soundIdFinish;
     float actualVolume = 0f;
     float maxVolume = 0f;
     float volume = 0f;
@@ -45,15 +46,34 @@ public class MainActivity extends ActionBarActivity {
     private static final int MAX_BPM = 240;
     AnimationDrawable metroAnim;
 
+    // This handler makes the tick sound, runs the metronome animation, and reposts itself to
+    // run at the next interval required to match the specified beats per minute (60 bpm - 1 second,
+    // 120 bpm - 500 milliseconds)
+
     Handler handler = new Handler();
     Runnable runner = new Runnable() {
         @Override
         public void run() {
+            long startTime = System.currentTimeMillis();
             metroAnim.stop();
-            soundPool.play(soundId, volume, volume, 1, 0, 1f);
+            soundPool.play(soundIdTick, volume, volume, 1, 0, 1f);
             metroAnim.start();
             //Log.e("Test", "Played sound");
-            handler.postDelayed(this, Math.round(bpmInt));
+            // post this handler again after the specified beat per minute interval,
+            // less the time taken up by prior computation (playing sound and restarting the animation)
+            handler.postDelayed(this, Math.round(bpmInt) - (System.currentTimeMillis()-startTime));
+        }
+    };
+
+    // this handler stops the previous handler from repeating itself after the specified duration
+    // if a duration is specified
+
+    Handler handlerDuration = new Handler();
+    Runnable runnerDuration = new Runnable() {
+        @Override
+        public void run() {
+            finishMetro();
+            soundPool.play(soundIdFinish, volume, volume, 1, 0, 1f);
         }
     };
 
@@ -110,24 +130,6 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-/*
-        txtBpm.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE)
-                {
-                    bpm = Integer.parseInt(v.getText().toString());
-                    skbBpm.setProgress((int)bpm - MIN_BPM);
-                    metroAnim = buildAnimation(txtBpm);
-                    ImageView imgMetro = (ImageView)findViewById(R.id.imgMetro);
-                    imgMetro.setBackground(metroAnim);
-                    return true;
-                }
-                return false;
-            }
-        });
-*/
-
         txtBpm.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -151,12 +153,31 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+        final Spinner spnDuration = (Spinner)findViewById(R.id.spnDuration);
+        ArrayAdapter<CharSequence> adapDuration = ArrayAdapter.createFromResource(this,
+                R.array.arrDuration,android.R.layout.simple_spinner_item);
+        adapDuration.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spnDuration.setAdapter(adapDuration);
+        spnDuration.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                //position 0 - Manual
+                //position 1... - multiples of 30 seconds
+                mDuration = position * 30000;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                mDuration = 0;
+            }
+        });
+
         final Button btnGoStop = (Button)findViewById(R.id.btnGoStop);
         btnGoStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 bpm = Integer.parseInt(txtBpm.getText().toString());
-                bpmInt = 60/bpm * 1000;
+                bpmInt = 60 / bpm * 1000;
                 // Getting the user sound settings
                 AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
                 actualVolume = (float) audioManager
@@ -168,83 +189,58 @@ public class MainActivity extends ActionBarActivity {
                 if (started) {
                     // Is the sound loaded already?
                     if (loaded) {
+                        // schedule the ticks at specified beats per minute
+
                         handler.postDelayed(runner, Math.round(bpmInt));
+
+                        // if a duration specified, schedule the duration runnable to stop everything
+                        // after the specified duration
+                        if (mDuration > 0) {
+                            handlerDuration.postDelayed(runnerDuration,mDuration);
+                        }
                         btnGoStop.setText(R.string.action_stop);
                         txtBpm.setEnabled(false);
                         skbBpm.setEnabled(false);
+                        spnDuration.setEnabled(false);
                     }
                 } else {
+/*
                     handler.removeCallbacks(runner);
                     metroAnim.stop();
                     txtBpm.setEnabled(true);
                     skbBpm.setEnabled(true);
-                    btnGoStop.setText(R.string.action_go);
+                    spnDuration.setEnabled(true);
+*/
+                    finishMetro();
+                    //if stop button is clicked, cancel any pending duration runnable
+                    handlerDuration.removeCallbacks(runnerDuration);
                 }
 
             }
         });
 
-        Spinner spnDuration = (Spinner)findViewById(R.id.spnDuration);
-        ArrayAdapter<CharSequence> adapDuration = ArrayAdapter.createFromResource(this,
-                                    R.array.arrDuration,android.R.layout.simple_spinner_item);
-        adapDuration.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spnDuration.setAdapter(adapDuration);
-        spnDuration.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mDuration = position * 30000;
-            }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                mDuration = 0;
-            }
-        });
-
-        soundPool = new SoundPool(1, AudioManager.STREAM_MUSIC,0);
+        soundPool = new SoundPool(2, AudioManager.STREAM_MUSIC,0);
         loaded = false;
         soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                //TODO differentiate between loading the two different sounds
                 loaded = true;
             }
         });
-        soundId = soundPool.load(this, R.raw.tick, 1);
+        soundIdTick = soundPool.load(this, R.raw.tick, 1);
+        soundIdFinish = soundPool.load(this, R.raw.demonstrative, 1);
 
         ImageView imgMetro = (ImageView)findViewById(R.id.imgMetro);
-        //imgMetro.setBackgroundResource(R.drawable.metro_animation);
-        //metroAnim = (AnimationDrawable)imgMetro.getBackground();
-        //metroAnim = new AnimationDrawable();
-        //metroAnim.setOneShot(false);
-/*
-        bpm = Integer.parseInt(txtBpm.getText().toString());
-        bpmInt = 60/bpm * 1000;
-        int iFrameDuration = (int)(bpmInt / 4 - 2);
-        Resources resources = getResources();
-        Drawable drawable = resources.getDrawable(R.drawable.metro_left);
-        metroAnim.addFrame(drawable, iFrameDuration);
-        drawable = resources.getDrawable(R.drawable.metro_vert);
-        metroAnim.addFrame(drawable, iFrameDuration);
-        drawable = resources.getDrawable(R.drawable.metro_right);
-        metroAnim.addFrame(drawable, iFrameDuration);
-        drawable = resources.getDrawable(R.drawable.metro_vert);
-        metroAnim.addFrame(drawable, iFrameDuration);
-*/
-        metroAnim = buildAnimation(txtBpm);
+         metroAnim = buildAnimation(txtBpm);
         imgMetro.setBackground(metroAnim);
     }
 
     @Override
     protected void onPause () {
         super.onPause();
-        final Button btnGoStop = (Button)findViewById(R.id.btnGoStop);
-        final EditText txtBpm = (EditText)findViewById(R.id.txtBpm);
-        final SeekBar skbBpm = (SeekBar)findViewById(R.id.skbBpm);
-        handler.removeCallbacks(runner);
-        metroAnim.stop();
-        btnGoStop.setText(R.string.action_go);
-        txtBpm.setEnabled(true);
-        skbBpm.setEnabled(true);
+        finishMetro();
     }
     
     private AnimationDrawable buildAnimation(TextView txt) {
@@ -285,5 +281,21 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void finishMetro()
+    {
+        // stop animation and repeated posting of ticking runnable
+        handler.removeCallbacks(runner);
+        metroAnim.stop();
+        EditText txtBpm = (EditText)findViewById(R.id.txtBpm);
+        txtBpm.setEnabled(true);
+        SeekBar skbBpm = (SeekBar)findViewById(R.id.skbBpm);
+        skbBpm.setEnabled(true);
+        Spinner spnDuration = (Spinner)findViewById(R.id.spnDuration);
+        spnDuration.setEnabled(true);
+        Button btnGoStop = (Button)findViewById(R.id.btnGoStop);
+        btnGoStop.setText(R.string.action_go);
+        started = false;
     }
 }
